@@ -1,5 +1,5 @@
 -- MyNotes.lua
--- Version: 1.1 
+-- Version: 1.0.2 
 -- This addon creates an in-game notes panel (MyNotes) with transparency options,
 -- a resizable main panel that supports notes via a standard input box, and a “New Sticky” button
 -- that creates a simplified sticky note panel (using the standard input box) for reminders.
@@ -12,7 +12,7 @@
 
 local E = {}
 E.name = "MyNotes"
-E.version = "1.0.1"
+E.version = "1.0.2"
 
 -- Global transparency settings.
 local transparencyEnabled = false
