@@ -1,21 +1,21 @@
 -- MainPanel.lua
--- Creates and manages the main MyNotes panel.
+-- Creates and manages the main MyNotesClassic panel.
 
-local E = MyNotesAddon
+local E = MyNotesClassicAddon
 
 local function Initialize()
-    local notes = MyNotesSavedNotes
+    local notes = MyNotesClassicSavedNotes
 
     --------------------------------------------------------------------------
     -- Main Frame
     --------------------------------------------------------------------------
-    local frame = CreateFrame("Frame", "MyNotesFrame", UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", "MyNotesClassicFrame", UIParent, "BackdropTemplate")
     frame:SetBackdrop(E.GetBackdrop())
-    frame:SetSize(MyNotesPanelSettings.width, MyNotesPanelSettings.height)
+    frame:SetSize(MyNotesClassicSettings.width, MyNotesClassicSettings.height)
     frame:SetPoint(
-        MyNotesPanelSettings.point, UIParent,
-        MyNotesPanelSettings.relativePoint,
-        MyNotesPanelSettings.x, MyNotesPanelSettings.y
+        MyNotesClassicSettings.point, UIParent,
+        MyNotesClassicSettings.relativePoint,
+        MyNotesClassicSettings.x, MyNotesClassicSettings.y
     )
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -25,23 +25,23 @@ local function Initialize()
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         local point, _, relativePoint, x, y = self:GetPoint()
-        MyNotesPanelSettings.point         = point
-        MyNotesPanelSettings.relativePoint = relativePoint
-        MyNotesPanelSettings.x             = x
-        MyNotesPanelSettings.y             = y
+        MyNotesClassicSettings.point         = point
+        MyNotesClassicSettings.relativePoint = relativePoint
+        MyNotesClassicSettings.x             = x
+        MyNotesClassicSettings.y             = y
     end)
 
-    if MyNotesPanelSettings.visible then frame:Show() else frame:Hide() end
+    if MyNotesClassicSettings.visible then frame:Show() else frame:Hide() end
 
     -- Auto-register/deregister the note input as the shift-click target so
     -- the user doesn't need to manually click the input box before shift-
     -- clicking an item in their bags.
     frame:SetScript("OnShow", function()
-        MyNotesPanelSettings.visible = true
+        MyNotesClassicSettings.visible = true
         if noteInput then E.SetFocusedEditBox(noteInput) end
     end)
     frame:SetScript("OnHide", function()
-        MyNotesPanelSettings.visible = false
+        MyNotesClassicSettings.visible = false
         if noteInput then E.ClearFocusedEditBox(noteInput) end
     end)
 
@@ -50,10 +50,13 @@ local function Initialize()
     local noteInput, addNoteButton, refreshNotes
 
     frame:SetScript("OnSizeChanged", function(self, width, height)
-        MyNotesPanelSettings.width  = width
-        MyNotesPanelSettings.height = height
-        if noteInput    then noteInput:SetWidth(self:GetWidth() - 100) end
-        if refreshNotes then refreshNotes() end
+        MyNotesClassicSettings.width  = width
+        MyNotesClassicSettings.height = height
+        if noteInput then noteInput:SetWidth(self:GetWidth() - 100) end
+        -- Defer refreshNotes to the next frame so GetStringHeight() returns
+        -- post-layout values; calling it synchronously here produces stale
+        -- heights that cause note entries to visually overlap each other.
+        if refreshNotes then C_Timer.After(0, refreshNotes) end
     end)
 
     local bgTexture = frame:CreateTexture(nil, "BACKGROUND")
@@ -74,7 +77,7 @@ local function Initialize()
     --------------------------------------------------------------------------
     -- Settings Fold-out (shown above the main frame)
     --------------------------------------------------------------------------
-    local settingsFrame = CreateFrame("Frame", "MyNotesSettingsFrame", UIParent, "BackdropTemplate")
+    local settingsFrame = CreateFrame("Frame", "MyNotesClassicSettingsFrame", UIParent, "BackdropTemplate")
     settingsFrame:SetBackdrop(E.GetBackdrop())
     settingsFrame:SetSize(frame:GetWidth(), 100)
     settingsFrame:SetPoint("BOTTOM", frame, "TOP", 0, -5)
@@ -119,7 +122,7 @@ local function Initialize()
             if k == E.borderStyle then cur = i; break end
         end
         E.borderStyle = order[(cur % #order) + 1]
-        MyNotesPanelSettings.borderStyle = E.borderStyle
+        MyNotesClassicSettings.borderStyle = E.borderStyle
         updateBorderBtn()
         E.ApplyBackdropToAll()
     end)
@@ -171,9 +174,9 @@ local function Initialize()
     updateFontDisplay()
 
     local function applyFontSize()
-        MyNotesPanelSettings.noteFontSize = E.noteFontSize
+        MyNotesClassicSettings.noteFontSize = E.noteFontSize
         refreshNotes()
-        for _, sd in ipairs(MyNotesStickyNotes) do
+        for _, sd in ipairs(MyNotesClassicStickyNotes) do
             if sd.refresh then sd.refresh() end
         end
     end
@@ -355,6 +358,16 @@ local function Initialize()
         fs:SetFont(font, size - 2, flags)
     end
     addNoteButton:SetPoint("BOTTOM", noteInput, "TOP", 140, -25)
+
+    -- OnSizeChanged fires only when the frame SIZE CHANGES, not on the initial
+    -- SetSize call during Initialize().  Manually correct both widgets now so
+    -- a relog into large-mode looks right without needing a second resize click.
+    noteInput:SetWidth(frame:GetWidth() - 100)
+    if MyNotesClassicSettings.isLarge then
+        addNoteButton:ClearAllPoints()
+        addNoteButton:SetPoint("BOTTOM", noteInput, "TOP", 210, -25)
+    end
+
     addNoteButton:SetScript("OnClick", function()
         local text = noteInput:GetText()
         if text and text ~= "" then
@@ -376,24 +389,27 @@ local function Initialize()
     resizeHandle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     resizeHandle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
     resizeHandle:SetScript("OnClick", function()
-        if MyNotesPanelSettings.isLarge then
+        if MyNotesClassicSettings.isLarge then
             frame:SetSize(300, 400)
-            MyNotesPanelSettings.isLarge = false
+            MyNotesClassicSettings.isLarge = false
+            addNoteButton:ClearAllPoints()
             addNoteButton:SetPoint("BOTTOM", noteInput, "TOP", 140, -25)
         else
             frame:SetSize(450, 600)
-            MyNotesPanelSettings.isLarge = true
+            MyNotesClassicSettings.isLarge = true
+            addNoteButton:ClearAllPoints()
             addNoteButton:SetPoint("BOTTOM", noteInput, "TOP", 210, -25)
         end
-        refreshNotes()
+        -- refreshNotes is triggered by the C_Timer.After(0,...) in OnSizeChanged,
+        -- which fires when SetSize is processed.  No explicit call needed here.
     end)
 
     --------------------------------------------------------------------------
     -- Toggle Button (anchored below the Minimap)
     --------------------------------------------------------------------------
-    local toggleButton = CreateFrame("Button", "MyNotesToggleButton", UIParent, "UIPanelButtonTemplate")
+    local toggleButton = CreateFrame("Button", "MyNotesClassicToggleButton", UIParent, "UIPanelButtonTemplate")
     toggleButton:SetSize(80, 22)
-    toggleButton:SetText("MyNotes")
+    toggleButton:SetText("MNClassic")
     if Minimap then
         toggleButton:SetPoint("TOP", Minimap, "BOTTOM", 0, -15)
     else

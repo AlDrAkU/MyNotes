@@ -1,11 +1,11 @@
 -- Core.lua
--- MyNotes v1.0.3
+-- MyNotesClassic v1.0.3
 -- Shared module state, saved variable initialization, and addon bootstrap.
 
-MyNotesAddon = MyNotesAddon or {}
-local E = MyNotesAddon
+MyNotesClassicAddon = MyNotesClassicAddon or {}
+local E = MyNotesClassicAddon
 
-E.name    = "MyNotes"
+E.name    = "MyNotesClassic"
 E.version = "1.0.3"
 
 -- Transparency settings shared across all panels.
@@ -39,9 +39,9 @@ end
 -- Reapplies the current backdrop to every open panel (main, settings, stickies).
 function E.ApplyBackdropToAll()
     local bd = E.GetBackdrop()
-    if _G["MyNotesFrame"]         then _G["MyNotesFrame"]:SetBackdrop(bd)         end
-    if _G["MyNotesSettingsFrame"] then _G["MyNotesSettingsFrame"]:SetBackdrop(bd) end
-    for _, sd in ipairs(MyNotesStickyNotes) do
+    if _G["MyNotesClassicFrame"]         then _G["MyNotesClassicFrame"]:SetBackdrop(bd)         end
+    if _G["MyNotesClassicSettingsFrame"] then _G["MyNotesClassicSettingsFrame"]:SetBackdrop(bd) end
+    for _, sd in ipairs(MyNotesClassicStickyNotes) do
         if sd.frame then sd.frame:SetBackdrop(bd) end
     end
 end
@@ -49,14 +49,14 @@ end
 --------------------------------------------------------------------------------
 -- Saved Variable Defaults
 --------------------------------------------------------------------------------
-if not MyNotesSavedNotes then
-    MyNotesSavedNotes = {}
+if not MyNotesClassicSavedNotes then
+    MyNotesClassicSavedNotes = {}
 end
-if not MyNotesStickyNotes then
-    MyNotesStickyNotes = {}
+if not MyNotesClassicStickyNotes then
+    MyNotesClassicStickyNotes = {}
 end
-if not MyNotesPanelSettings then
-    MyNotesPanelSettings = {
+if not MyNotesClassicSettings then
+    MyNotesClassicSettings = {
         point           = "CENTER",
         relativePoint   = "CENTER",
         x               = 0,
@@ -69,23 +69,82 @@ if not MyNotesPanelSettings then
         borderStyle     = "none",
         noteFontSize    = 12,
         stickiesVisible = true,
+        hasRun          = false,   -- false on brand-new installs; triggers first-run hint
     }
 end
 
 -- Back-fill keys added in later versions so old saved data is never broken.
-if MyNotesPanelSettings.visible         == nil then MyNotesPanelSettings.visible         = true  end
-if MyNotesPanelSettings.showBorders     == nil then MyNotesPanelSettings.showBorders     = false  end
-if MyNotesPanelSettings.borderStyle     == nil then
-    -- Migrate old boolean showBorders to the new string key.
-    MyNotesPanelSettings.borderStyle = MyNotesPanelSettings.showBorders and "dialog" or "none"
+if MyNotesClassicSettings.visible         == nil then MyNotesClassicSettings.visible         = true  end
+if MyNotesClassicSettings.showBorders     == nil then MyNotesClassicSettings.showBorders     = false  end
+if MyNotesClassicSettings.borderStyle     == nil then
+    MyNotesClassicSettings.borderStyle = MyNotesClassicSettings.showBorders and "dialog" or "none"
 end
-if MyNotesPanelSettings.noteFontSize    == nil then MyNotesPanelSettings.noteFontSize    = 12    end
-if MyNotesPanelSettings.stickiesVisible == nil then MyNotesPanelSettings.stickiesVisible = true  end
+if MyNotesClassicSettings.noteFontSize    == nil then MyNotesClassicSettings.noteFontSize    = 12    end
+if MyNotesClassicSettings.stickiesVisible == nil then MyNotesClassicSettings.stickiesVisible = true  end
+-- Existing users upgrading from a version without hasRun should not see the
+-- first-run hint, so back-fill to true for them.
+if MyNotesClassicSettings.hasRun          == nil then MyNotesClassicSettings.hasRun          = true  end
+
+--------------------------------------------------------------------------------
+-- First-run migration from the old "MyNotes" addon.
+-- MyNotesSavedNotes / MyNotesStickyNotes / MyNotesPanelSettings are also
+-- declared in the TOC so that if the user copies their WTF SavedVariables file
+--   WTF/.../SavedVariables/MyNotes.lua  →  MyNotesClassic.lua  (same folder)
+-- WoW will load those globals here and the block below merges them once then
+-- clears the originals so they are not re-imported on subsequent logins.
+--------------------------------------------------------------------------------
+local _migrationMsg
+do
+    local any = false
+
+    if MyNotesSavedNotes and #MyNotesSavedNotes > 0
+            and #MyNotesClassicSavedNotes == 0 then
+        for _, v in ipairs(MyNotesSavedNotes) do
+            table.insert(MyNotesClassicSavedNotes, v)
+        end
+        MyNotesSavedNotes = nil
+        any = true
+    end
+
+    if MyNotesStickyNotes and #MyNotesStickyNotes > 0
+            and #MyNotesClassicStickyNotes == 0 then
+        for _, v in ipairs(MyNotesStickyNotes) do
+            table.insert(MyNotesClassicStickyNotes, v)
+        end
+        MyNotesStickyNotes = nil
+        any = true
+    end
+
+    if MyNotesPanelSettings then
+        local src, dst = MyNotesPanelSettings, MyNotesClassicSettings
+        for _, k in ipairs({ "point","relativePoint","x","y","width","height",
+                              "isLarge","visible","stickiesVisible" }) do
+            if src[k] ~= nil then dst[k] = src[k] end
+        end
+        MyNotesPanelSettings = nil
+        any = true
+    end
+
+    if any then
+        local n = #MyNotesClassicSavedNotes
+        local s = #MyNotesClassicStickyNotes
+        _migrationMsg = "|cff00ff00[MyNotesClassic]|r Imported "
+                        .. n .. " note(s) and " .. s
+                        .. " sticky/stickies from the old MyNotes addon."
+    elseif not MyNotesClassicSettings.hasRun then
+        _migrationMsg = "|cffaaaaaa[MyNotesClassic]|r First run."
+                        .. "  Had old MyNotes data?  Type "
+                        .. "|cffffd700/mynotesclassic import|r for import instructions."
+    end
+
+    MyNotesClassicSettings.hasRun = true
+end
 
 -- Mirror persisted settings into the module so all panels can read them.
-E.showBorders  = MyNotesPanelSettings.showBorders   -- kept for compat
-E.borderStyle  = MyNotesPanelSettings.borderStyle
-E.noteFontSize = MyNotesPanelSettings.noteFontSize
+-- Done AFTER migration so any migrated settings values are picked up here.
+E.showBorders  = MyNotesClassicSettings.showBorders   -- kept for compat
+E.borderStyle  = MyNotesClassicSettings.borderStyle
+E.noteFontSize = MyNotesClassicSettings.noteFontSize
 
 --------------------------------------------------------------------------------
 -- Bootstrap: fires after all addon files are loaded.
@@ -93,14 +152,15 @@ E.noteFontSize = MyNotesPanelSettings.noteFontSize
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName == "MyNotes" then
+    if addonName == "MyNotesClassic" then
         E.Initialize()
-        for _, stickyData in ipairs(MyNotesStickyNotes) do
+        if _migrationMsg then print(_migrationMsg) end
+        for _, stickyData in ipairs(MyNotesClassicStickyNotes) do
             CreateStickyNotePanel(stickyData)
         end
         -- Restore the stickies show/hide state from the previous session.
-        if not MyNotesPanelSettings.stickiesVisible then
-            for _, stickyData in ipairs(MyNotesStickyNotes) do
+        if not MyNotesClassicSettings.stickiesVisible then
+            for _, stickyData in ipairs(MyNotesClassicStickyNotes) do
                 if stickyData.frame then stickyData.frame:Hide() end
             end
         end

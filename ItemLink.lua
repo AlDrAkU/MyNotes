@@ -1,9 +1,9 @@
 -- ItemLink.lua
--- Allows shift-clicking items to insert their links into a focused MyNotes
+-- Allows shift-clicking items to insert their links into a focused MyNotesClassic
 -- edit box.  When a saved note contains an item link, hovering over it shows
 -- the item's full tooltip so you can inspect stats without opening the bag.
 
-local E = MyNotesAddon
+local E = MyNotesClassicAddon
 
 E.focusedEditBox = nil
 E.debugMode      = false
@@ -49,7 +49,7 @@ local lastInsertTime = 0  -- dedup guard shared across hooks
 if ChatFrameUtil and ChatFrameUtil.InsertLink then
     hooksecurefunc(ChatFrameUtil, "InsertLink", function(link)
         if E.debugMode then
-            print("[MyNotes] ChatFrameUtil.InsertLink fired | link=" .. tostring(link)
+            print("[MyNotesClassic] ChatFrameUtil.InsertLink fired | link=" .. tostring(link)
                   .. " | focused=" .. tostring(E.focusedEditBox))
         end
         if tryInsertLink(link) then
@@ -57,7 +57,7 @@ if ChatFrameUtil and ChatFrameUtil.InsertLink then
         end
     end)
 else
-    print("|cffff4444[MyNotes]|r ChatFrameUtil.InsertLink not found – link hook inactive.")
+    print("|cffff4444[MyNotesClassic]|r ChatFrameUtil.InsertLink not found – link hook inactive.")
 end
 
 --------------------------------------------------------------------------
@@ -67,7 +67,7 @@ end
 if ChatEdit_InsertLink then
     hooksecurefunc("ChatEdit_InsertLink", function(link)
         if E.debugMode then
-            print("[MyNotes] ChatEdit_InsertLink fired | link=" .. tostring(link))
+            print("[MyNotesClassic] ChatEdit_InsertLink fired | link=" .. tostring(link))
         end
         if GetTime() - lastInsertTime < 0.1 then return end  -- already handled
         if tryInsertLink(link) then
@@ -86,7 +86,7 @@ if ContainerFrameItemButton_OnModifiedClick then
         if not IsShiftKeyDown() then return end
         if GetTime() - lastInsertTime < 0.1 then return end
         if E.debugMode then
-            print("[MyNotes] ContainerFrameItemButton_OnModifiedClick fired")
+            print("[MyNotesClassic] ContainerFrameItemButton_OnModifiedClick fired")
         end
         local bagID  = self:GetParent():GetID()
         local slotID = self:GetID()
@@ -103,26 +103,26 @@ if ContainerFrameItemButton_OnModifiedClick then
 end
 
 --------------------------------------------------------------------------
--- Slash commands  /mynotes <sub-command>
+-- Slash commands  /mynotesclassic <sub-command>
 --   debug      – print current state
 --   debug on   – verbose prints on every hook fire
 --   debug off  – disable verbose prints
 --   test       – inject a dummy link directly (bypasses all hooks)
 --------------------------------------------------------------------------
-SLASH_MYNOTES1 = "/mynotes"
-SlashCmdList["MYNOTES"] = function(msg)
+SLASH_MYNOTESCLASSIC1 = "/mynotesclassic"
+SlashCmdList["MYNOTESCLASSIC"] = function(msg)
     msg = msg and msg:lower() or ""
 
     if msg == "debug on" then
         E.debugMode = true
-        print("|cff00ff00[MyNotes]|r Debug ON – shift-click an item to see output.")
+        print("|cff00ff00[MyNotesClassic]|r Debug ON – shift-click an item to see output.")
 
     elseif msg == "debug off" then
         E.debugMode = false
-        print("|cff00ff00[MyNotes]|r Debug OFF.")
+        print("|cff00ff00[MyNotesClassic]|r Debug OFF.")
 
     elseif msg == "debug" then
-        print("|cff00ff00[MyNotes]|r --- State ---")
+        print("|cff00ff00[MyNotesClassic]|r --- State ---")
         print("  focusedEditBox                              : " .. tostring(E.focusedEditBox))
         if E.focusedEditBox then
             print("  IsVisible                                   : " .. tostring(E.focusedEditBox:IsVisible()))
@@ -131,17 +131,25 @@ SlashCmdList["MYNOTES"] = function(msg)
         print("  ChatEdit_InsertLink exists                  : " .. tostring(ChatEdit_InsertLink ~= nil))
         print("  ContainerFrameItemButton_OnModifiedClick    : " .. tostring(ContainerFrameItemButton_OnModifiedClick ~= nil))
 
+    elseif msg == "import" then
+        print("|cff00ff00[MyNotesClassic]|r To import data from the old MyNotes addon:")
+        print("  1. Close WoW completely.")
+        print("  2. Find your per-character SavedVariables folder:")
+        print("     WTF/Account/<name>/<realm>/<char>/SavedVariables/")
+        print("  3. Copy  MyNotes.lua  →  MyNotesClassic.lua  in that same folder.")
+        print("  4. Relaunch WoW and relog – data imports automatically on first load.")
+
     elseif msg == "test" then
         local testLink = "|cff1eff00|Hitem:6948:0:0:0:0:0:0:0|h[Hearthstone]|h|r"
         if E.focusedEditBox and E.focusedEditBox:IsVisible() then
             local cur = E.focusedEditBox:GetText()
             E.focusedEditBox:SetText(cur == "" and testLink or (cur .. testLink))
-            print("|cff00ff00[MyNotes]|r Test link inserted – press Enter or click Add Note.")
+            print("|cff00ff00[MyNotesClassic]|r Test link inserted – press Enter or click Add Note.")
         else
-            print("|cffff4444[MyNotes]|r No focused editbox. Open the MyNotes panel first.")
+            print("|cffff4444[MyNotesClassic]|r No focused editbox. Open the MyNotes panel first.")
         end
 
     else
-        print("|cff00ff00[MyNotes]|r Commands: debug | debug on | debug off | test")
+        print("|cff00ff00[MyNotesClassic]|r Commands: debug | debug on | debug off | test | import")
     end
 end

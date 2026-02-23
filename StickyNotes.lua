@@ -1,7 +1,7 @@
 -- StickyNotes.lua
 -- Sticky note panel creation, management, and global show/hide toggle.
 
-local E = MyNotesAddon
+local E = MyNotesClassicAddon
 
 function CreateStickyNotePanel(existingStickyData)
     local stickyData = existingStickyData
@@ -12,12 +12,13 @@ function CreateStickyNotePanel(existingStickyData)
             isLarge   = false,
             collapsed = false,
         }
-        table.insert(MyNotesStickyNotes, stickyData)
+        table.insert(MyNotesClassicStickyNotes, stickyData)
     end
 
     local sticky = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     sticky:SetBackdrop(E.GetBackdrop())
-    sticky:SetSize(250, 200)
+    -- Restore saved size before any child widgets read the frame dimensions.
+    sticky:SetSize(stickyData.isLarge and 375 or 250, stickyData.isLarge and 300 or 200)
     sticky:SetClampedToScreen(true)
 
     if stickyData.savedPoint then
@@ -58,9 +59,9 @@ function CreateStickyNotePanel(existingStickyData)
     local closeButton = CreateFrame("Button", nil, sticky, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", sticky, "TOPRIGHT", 5, 5)
     closeButton:SetScript("OnClick", function()
-        for i, data in ipairs(MyNotesStickyNotes) do
+        for i, data in ipairs(MyNotesClassicStickyNotes) do
             if data.id == stickyData.id then
-                table.remove(MyNotesStickyNotes, i)
+                table.remove(MyNotesClassicStickyNotes, i)
                 break
             end
         end
@@ -249,7 +250,7 @@ end
 -- Global toggle button to show/hide all open sticky notes.
 -- Saves the visibility state so it persists across sessions.
 --------------------------------------------------------------------------------
-local stickyToggleButton = CreateFrame("Button", "StickyNotesToggleButton", UIParent, "UIPanelButtonTemplate")
+local stickyToggleButton = CreateFrame("Button", "MyNotesClassicStickiesButton", UIParent, "UIPanelButtonTemplate")
 stickyToggleButton:SetSize(60, 22)
 stickyToggleButton:SetText("Stickies")
 stickyToggleButton:EnableMouse(true)
@@ -261,18 +262,18 @@ stickyToggleButton:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -100, -140)
 stickyToggleButton:SetScript("OnClick", function()
     -- Determine the new state by checking if any sticky is currently shown.
     local anyShown = false
-    for _, stickyData in ipairs(MyNotesStickyNotes) do
+    for _, stickyData in ipairs(MyNotesClassicStickyNotes) do
         if stickyData.frame and stickyData.frame:IsShown() then
             anyShown = true
             break
         end
     end
     local newVisible = not anyShown
-    for _, stickyData in ipairs(MyNotesStickyNotes) do
+    for _, stickyData in ipairs(MyNotesClassicStickyNotes) do
         if stickyData.frame then
             if newVisible then stickyData.frame:Show() else stickyData.frame:Hide() end
         end
     end
     -- Persist so the same state is restored on next login.
-    MyNotesPanelSettings.stickiesVisible = newVisible
+    MyNotesClassicSettings.stickiesVisible = newVisible
 end)
