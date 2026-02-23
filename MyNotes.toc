@@ -1,4 +1,4 @@
-## Interface: 11507
+## Interface: 20505
 ## Title: MyNotes
 ## Notes: In-game notes panel addon with normal input, sticky notes, and item link support.
 ## Author: Aldraku
