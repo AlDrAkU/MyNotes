@@ -1,7 +1,11 @@
 ## Interface: 11507
 ## Title: MyNotes
-## Notes: In-game notes panel addon with normal input, sticky notes.
+## Notes: In-game notes panel addon with normal input, sticky notes, and item link support.
 ## Author: Aldraku
-## Version: 1.0.2
+## Version: 1.0.3
 ## SavedVariablesPerCharacter: MyNotesSavedNotes, MyNotesStickyNotes, MyNotesPanelSettings
-MyNotes.lua
+
+Core.lua
+ItemLink.lua
+MainPanel.lua
+StickyNotes.lua
